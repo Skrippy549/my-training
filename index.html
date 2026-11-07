@@ -25,9 +25,40 @@
     @media(max-width:680px){.wrap{padding:18px 13px 90px}.top{margin-bottom:17px}.top h1{font-size:30px}.logo{width:44px;height:44px;border-radius:13px}.hero{padding:17px}.hero-grid{grid-template-columns:1fr;gap:6px}.progress-figure{text-align:left;display:flex;align-items:baseline;gap:12px}.progress-figure .small{max-width:180px}.big-progress{font-size:30px}.week-tools{margin-top:20px}.section-eyebrow{font-size:11px}.week-label{min-width:115px}.days{gap:5px}.day{min-height:78px;border-radius:11px;padding:9px 1px 7px}.day strong{font-size:11px}.day .date{font-size:17px}.day .tinybar{width:21px}.day-heading h2{font-size:23px}.block-head{padding:14px}.exercise{padding:13px}.ex-qty{font-size:11px}.pain-grid{gap:6px}.pain-unit{padding:9px}.pain-unit label{font-size:11px}.summary-grid{gap:6px}.metric{padding:10px}.metric .num{font-size:17px}}
     @media(max-width:390px){.day{min-height:72px}.day .date{font-size:15px}.week-label{min-width:106px}.week-nav{gap:5px}.hero h2{font-size:17px}}
     @media print{body{background:white;color:#111}.wrap{max-width:none}.panel,.block,.exercise{background:#fff;border-color:#bbb;color:#111;box-shadow:none}.top,.week-tools,.days,.actions,.foot-panel,.log-box,.safety,.ex-detail summary,.weight-input{display:none!important}.muted,.block-head p,.ex-meta{color:#555}.block-kicker,.eyebrow{color:#165}.ex-detail{display:block}.ex-detail .technique{display:block;background:#eee;color:#222}.single-check{border-color:#555}}
+  
+    body.locked main.wrap{display:none}
+    .auth-screen{min-height:100svh;display:grid;place-items:center;padding:25px 18px 42px;background:radial-gradient(circle at top left,#14394c,transparent 55%),#0b1018}
+    body:not(.locked) .auth-screen{display:none}
+    .auth-card{width:min(440px,100%);padding:25px;background:linear-gradient(180deg,#172231,#111b28);border:1px solid #34465b;border-radius:20px;box-shadow:0 20px 55px #0007}
+    .auth-card h1{font-size:25px;letter-spacing:-.035em;line-height:1.2;margin:10px 0 12px}
+    .auth-card p{color:#a9bccd;font-size:13px;line-height:1.6}
+    .auth-card label{display:block;font-size:12px;font-weight:700;margin:16px 0 7px}
+    .auth-card input{display:block;width:100%;background:#0c1724;border:1px solid #435d71;border-radius:10px;color:#fff;padding:13px;font-size:16px}
+    .auth-card button{width:100%;background:#67dbc0;border:0;color:#092923;font-weight:850;border-radius:11px;padding:13px;margin-top:18px;min-height:46px}
+    .auth-card button:disabled{opacity:.5}
+    .auth-error{color:#ffbbb3!important;min-height:19px}
+    .auth-warning{margin-top:16px;padding:12px;border:1px solid #625239;border-radius:10px;background:#2b261e;font-size:12px;color:#f0d8b1;line-height:1.55}
   </style>
 </head>
-<body>
+<body class="locked">
+<section id="authScreen" class="auth-screen" aria-label="Защита личных записей">
+  <div class="auth-card">
+    <div class="eyebrow">ТРЕНИРОВКИ · ЗАЩИЩЁННЫЙ ДНЕВНИК</div>
+    <h1 id="authTitle">Придумай пароль</h1>
+    <p id="authDescription">Записи тренировок, отметки и рабочие веса будут зашифрованы на этом устройстве. Сам план упражнений остаётся публичным.</p>
+    <form id="authForm">
+      <label for="authPassword">Пароль (не менее 12 символов)</label>
+      <input id="authPassword" type="password" autocomplete="current-password" minlength="12" required spellcheck="false">
+      <div id="confirmBlock">
+        <label for="authConfirm">Повтори пароль</label>
+        <input id="authConfirm" type="password" autocomplete="new-password" minlength="12" spellcheck="false">
+      </div>
+      <p id="authError" class="auth-error" role="alert"></p>
+      <button id="authSubmit" type="submit">Создать защищённое хранилище</button>
+    </form>
+    <div class="auth-warning">Пароль нигде не сохраняется и не отправляется на сервер. Если забудешь пароль, восстановить зашифрованные записи нельзя. Сохрани его в менеджере паролей и делай резервные копии.</div>
+  </div>
+</section>
 <main class="wrap">
   <header class="top">
     <div><div class="eyebrow">Личный тренировочный план</div><h1>ТРЕНИРОВКИ<span style="color:var(--accent)">.</span></h1><p>Каждый день — конкретные действия. Всё сохраняется на устройстве.</p></div>
@@ -49,10 +80,10 @@
   <section id="dayContent" aria-live="polite"></section>
   <section class="panel foot-panel" aria-label="Настройки и резервные копии">
     <h3>Настройки и резервная копия</h3>
-    <p>Прогресс хранится в браузере на этом устройстве. Для переноса на другой телефон или на случай очистки данных браузера скачай резервную копию и затем импортируй её.</p>
+    <p>Личные записи хранятся в браузере на этом устройстве в зашифрованном виде. Для переноса на другой телефон или на случай очистки данных браузера скачай зашифрованную резервную копию.</p>
     <div class="foot-row"><label for="startDate">Начало программы (понедельник):</label><input id="startDate" type="date" value="2026-11-09"></div>
-    <div class="foot-row"><button class="action secondary" data-action="go-current">К текущей неделе</button><button class="action secondary" data-action="export">Скачать резервную копию</button><button class="action secondary" data-action="import">Импортировать</button><input class="hidden" type="file" accept="application/json,.json" id="fileInput"></div>
-    <p class="fineprint">Можно пользоваться без интернета. Ссылки «Найти видео» требуют подключения к сети и ведут на поиск, а не на проверенные медицинские демонстрации. В некоторых просмотрщиках файлов на iPhone сохранение может быть ограничено: открывай файл именно в браузере и регулярно экспортируй резервную копию.</p>
+    <div class="foot-row"><button class="action secondary" data-action="go-current">К текущей неделе</button><button class="action secondary" data-action="export">Скачать зашифрованную копию</button><button class="action secondary" data-action="import">Импортировать</button><button class="action secondary" data-action="lock">Закрыть дневник</button><input class="hidden" type="file" accept="application/json,.json" id="fileInput"></div>
+    <p class="fineprint">Пароль защищает локальные записи, но не закрывает публичную страницу GitHub Pages. Работай через https-ссылку в Safari или иконку на экране iPhone. Ссылки на видео требуют интернета. Регулярно скачивай зашифрованные резервные копии.</p>
   </section>
   <div class="fineprint">Этот план — ориентир до очной оценки колена, стоп и спины. Не выполняй упражнения через усиливающуюся боль. При отёке колена, блокировке, нарастающей слабости, онемении или других тревожных симптомах обратись за медицинской помощью. Дефицит калорий около 1914 ккал повышает важность восстановления.</div>
 </main>
@@ -197,8 +228,17 @@ const satStrength=[
 const DAYS=[{label:'ПН',name:'Понедельник',title:'Восстановительная йога',type:'Дома',hint:'20–25 минут. Спокойная подвижность после воскресного тенниса.'},{label:'ВТ',name:'Вторник',title:'Силовая А · всё тело',type:'Зал',hint:'40–50 минут. Тренажёры, техника и умеренное усилие.'},{label:'СР',name:'Среда',title:'Теннис',type:'Корт',hint:'Разминка, игра 60 минут, короткая заминка.'},{label:'ЧТ',name:'Четверг',title:'Силовая Б · всё тело',type:'Зал',hint:'40–50 минут. Нагрузка без работы до отказа.'},{label:'ПТ',name:'Пятница',title:'Кардио и мобильность',type:'Зал',hint:'40–50 минут. Велотренажёр и подвижность ног для тенниса.'},{label:'СБ',name:'Суббота',title:'Облегчённая силовая В',type:'Зал',hint:'С третьей недели. До этого — лёгкая мобильность.'},{label:'ВС',name:'Воскресенье',title:'Теннис',type:'Корт',hint:'Разминка, игра до 90 минут по переносимости, заминка.'}];
 const plans=[mondayPlan,tuesday,tennisDay(false),thursday,friday,null,tennisDay(true)];
 const KEY='training-week-offline-v1';
-let store={startDate:'2026-11-09',checks:{},logs:{},weights:{}};
-try{const raw=localStorage.getItem(KEY);if(raw){const parsed=JSON.parse(raw);if(parsed&&typeof parsed==='object'){store={...store,...parsed};store.checks=store.checks||{};store.logs=store.logs||{};store.weights=store.weights||{};}}}catch(ex){console.warn('Local storage unavailable',ex)}
+const SECURE_KEY='training-week-secure-v1';
+const FORMAT='training-week-encrypted-v1';
+const ITERATIONS=310000;
+const emptyStore=()=>({startDate:'2026-11-09',checks:{},logs:{},weights:{}});
+const normalizeStore=o=>({
+ startDate:/^\\d{4}-\\d{2}-\\d{2}$/.test(o?.startDate||'')?o.startDate:'2026-11-09',
+ checks:o?.checks&&typeof o.checks==='object'&&!Array.isArray(o.checks)?o.checks:{},
+ logs:o?.logs&&typeof o.logs==='object'&&!Array.isArray(o.logs)?o.logs:{},
+ weights:o?.weights&&typeof o.weights==='object'&&!Array.isArray(o.weights)?o.weights:{}
+});
+let store=emptyStore(), secretKey=null, secretSalt=null, writeQueue=Promise.resolve(), authMode='setup', hiddenAt=null;
 const now=new Date();
 function iso(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
 function fromISO(s){let [y,m,d]=(s||'2026-11-09').split('-').map(Number);return new Date(y,m-1,d,12,0,0)}
@@ -208,7 +248,90 @@ function phaseFor(week){return Math.max(1,Math.min(4,Math.floor((monday(week)-mo
 let viewWeek=monday(now<fromISO(store.startDate)?fromISO(store.startDate):now);
 let activeDay=iso(monday(now))===iso(viewWeek)?(now.getDay()+6)%7:0;
 const $=(s)=>document.querySelector(s);
-const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(store));return true}catch(err){toast('Не удалось сохранить в браузере. Экспортируй резервную копию.');return false}};
+
+function to64(arr){let s='';for(let i=0;i<arr.length;i+=8192)s+=String.fromCharCode(...arr.slice(i,i+8192));return btoa(s)}
+function from64(text){const s=atob(text);const a=new Uint8Array(s.length);for(let i=0;i<s.length;i++)a[i]=s.charCodeAt(i);return a}
+async function passwordKey(password,salt,iterations=ITERATIONS){
+ const raw=await crypto.subtle.importKey('raw',new TextEncoder().encode(password),'PBKDF2',false,['deriveKey']);
+ return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations,hash:'SHA-256'},raw,{name:'AES-GCM',length:256},false,['encrypt','decrypt'])
+}
+async function encryptPayload(plain,key,salt){
+ const iv=crypto.getRandomValues(new Uint8Array(12));
+ const bytes=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,new TextEncoder().encode(plain));
+ return {format:FORMAT,version:1,iterations:ITERATIONS,salt:to64(salt),iv:to64(iv),ciphertext:to64(new Uint8Array(bytes))}
+}
+async function decryptPayload(env,key){
+ if(env?.format!==FORMAT||env.version!==1||typeof env.ciphertext!=='string'||!Number.isInteger(env.iterations)||env.iterations<100000||env.iterations>2000000)throw Error('Неподдерживаемый формат');
+ const bytes=await crypto.subtle.decrypt({name:'AES-GCM',iv:from64(env.iv)},key,from64(env.ciphertext));
+ return new TextDecoder().decode(bytes)
+}
+function save(){
+ if(!secretKey)return false;
+ const snapshot=JSON.stringify(store),key=secretKey,salt=secretSalt;
+ writeQueue=writeQueue.catch(()=>{}).then(async()=>{
+  const env=await encryptPayload(snapshot,key,salt);
+  localStorage.setItem(SECURE_KEY,JSON.stringify(env));
+ });
+ writeQueue.catch(()=>toast('Ошибка сохранения. Проверь свободное место и создай резервную копию.'));
+ return true
+}
+async function flushSaved(){await writeQueue}
+function renderUnlocked(){
+ viewWeek=monday(now<fromISO(store.startDate)?fromISO(store.startDate):now);
+ activeDay=iso(monday(now))===iso(viewWeek)?(now.getDay()+6)%7:0;
+ document.body.classList.remove('locked');fullRender()
+}
+function setAuthMode(mode){
+ authMode=mode;document.body.classList.add('locked');
+ const setup=mode==='setup';
+ $('#authTitle').textContent=setup?'Придумай пароль':'Введи пароль';
+ $('#authDescription').textContent=setup?'Создай пароль, чтобы зашифровать личный прогресс на этом iPhone. Уже сохранённые записи будут перенесены.':'Открой свой зашифрованный дневник тренировок. Пароль никуда не отправляется.';
+ $('#confirmBlock').hidden=!setup;
+ $('#authSubmit').textContent=setup?'Создать защищённое хранилище':'Открыть дневник';
+ $('#authPassword').value='';$('#authConfirm').value='';$('#authError').textContent='';
+}
+async function lockDiary(){
+ await flushSaved();secretKey=null;secretSalt=null;store=emptyStore();setAuthMode('unlock')
+}
+function initAuth(){
+ if(!crypto?.subtle){$('#authError').textContent='Шифрование недоступно. Открой приложение по HTTPS в Safari.';$('#authSubmit').disabled=true;return}
+ let hasSecure=false;try{hasSecure=Boolean(localStorage.getItem(SECURE_KEY))}catch(ex){$('#authError').textContent='Хранилище браузера недоступно.';$('#authSubmit').disabled=true;return}
+ setAuthMode(hasSecure?'unlock':'setup')
+}
+$('#authForm').addEventListener('submit',async event=>{
+ event.preventDefault();
+ const password=$('#authPassword').value;
+ const btn=$('#authSubmit');$('#authError').textContent='';
+ if(password.length<12){$('#authError').textContent='Нужно не менее 12 символов.';return}
+ btn.disabled=true;
+ try{
+  if(authMode==='setup'){
+   if(password!==$('#authConfirm').value)throw Error('Пароли не совпадают.');
+   const salt=crypto.getRandomValues(new Uint8Array(16));
+   const key=await passwordKey(password,salt);
+   let old=emptyStore();
+   const legacy=localStorage.getItem(KEY);
+   if(legacy)old=normalizeStore(JSON.parse(legacy));
+   store=old;secretKey=key;secretSalt=salt;
+   save();await flushSaved();
+   localStorage.removeItem(KEY);
+  }else{
+   const env=JSON.parse(localStorage.getItem(SECURE_KEY)||'null');
+   if(!env||env.format!==FORMAT)throw Error('Защищённые данные не найдены.');
+   const key=await passwordKey(password,from64(env.salt),env.iterations);
+   let data;
+   try{data=JSON.parse(await decryptPayload(env,key))}catch(e){throw Error('Неверный пароль или повреждённые данные.')}
+   store=normalizeStore(data);secretKey=key;secretSalt=from64(env.salt);
+  }
+  $('#authPassword').value='';$('#authConfirm').value='';renderUnlocked();
+ }catch(err){$('#authError').textContent=err.message||'Ошибка. Попробуй снова.'}
+ finally{btn.disabled=false}
+});
+document.addEventListener('visibilitychange',()=>{
+ if(document.hidden)hiddenAt=Date.now();
+ else if(hiddenAt&&Date.now()-hiddenAt>5*60*1000&&secretKey)lockDiary().catch(()=>{});
+});
+
 function toast(s){const el=$('#toast');el.textContent=s;el.classList.add('show');clearTimeout(window._toast);window._toast=setTimeout(()=>el.classList.remove('show'),2400)}
 function escapeHTML(t){return String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function effectiveSets(ex,section,phase){return section.kind==='strength'&&phase===1?1:(ex.sets||0)}
@@ -252,12 +375,25 @@ document.addEventListener('click',async ev=>{
  const act=t.dataset.action;
  if(act==='day'){activeDay=Number(t.dataset.day);fullRender();return}
  if(act==='prev-week'||act==='next-week'){viewWeek=plusDays(viewWeek,act==='prev-week'?-7:7);activeDay=0;fullRender();return}
+ if(act==='lock'){await lockDiary();return}
  if(act==='go-current'){viewWeek=monday(new Date()<fromISO(store.startDate)?fromISO(store.startDate):new Date());activeDay=iso(monday(now))===iso(viewWeek)?(now.getDay()+6)%7:0;fullRender();toast('Открыта текущая неделя');return}
  const date=dayDate(activeDay),phase=phaseFor(viewWeek);
  if(act==='set'){const map=ensureDateMap('checks',date);map[t.dataset.id]=!map[t.dataset.id];t.classList.toggle('selected',map[t.dataset.id]);t.textContent=t.dataset.id.split('/').pop()+(map[t.dataset.id]?' ✓':'');t.setAttribute('aria-pressed',String(Boolean(map[t.dataset.id])));save();refreshCounts();return}
  if(act==='complete-day'){const map=ensureDateMap('checks',date);for(const s of dailySections(activeDay,phase))for(const ex of s.items){const n=effectiveSets(ex,s,phase);if(n)for(let k=1;k<=n;k++)map[checkKey(s,ex,k)]=true;else map[checkKey(s,ex,0)]=true}save();renderDay();renderWeek();toast('День отмечен выполненным');return}
  if(act==='clear-day'){if(!confirm('Сбросить все отметки упражнений за этот день? Заметки и веса останутся.'))return;delete store.checks[date];save();renderDay();renderWeek();toast('Отметки дня сброшены');return}
- if(act==='export'){const blob=new Blob([JSON.stringify({app:'training-week-offline-v1',savedAt:new Date().toISOString(),data:store},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='trenirovki_progress_'+iso(new Date())+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);toast('Резервная копия подготовлена');return}
+ if(act==='export'){
+  try{
+   await flushSaved();
+   const env=localStorage.getItem(SECURE_KEY);
+   if(!env)throw Error('Зашифрованных данных нет');
+   const blob=new Blob([env],{type:'application/json'});
+   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+   a.download='trenirovki_encrypted_'+iso(new Date())+'.json';a.click();
+   setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+   toast('Зашифрованная копия подготовлена');
+  }catch(err){alert('Не удалось создать резервную копию: '+err.message)}
+  return
+ }
  if(act==='import'){$('#fileInput').click();return}
 });
 document.addEventListener('change',ev=>{
@@ -267,7 +403,22 @@ document.addEventListener('change',ev=>{
  if(t.id==='startDate'){let val=t.value;if(!val)return;const shifted=monday(fromISO(val));store.startDate=iso(shifted);save();fullRender();toast('Начало программы: '+shifted.toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'}))}
  if(t.id==='fileInput'){
    const f=t.files?.[0];if(!f)return;
-   const reader=new FileReader();reader.onload=()=>{try{const val=JSON.parse(reader.result),obj=val.data??val;if(!obj.checks||!obj.logs||!obj.weights)throw new Error('invalid');if(!confirm('Заменить текущие отметки и заметки данными из резервной копии?'))return;store={...store,...obj};save();fullRender();toast('Резервная копия восстановлена')}catch(err){alert('Файл не похож на резервную копию этого плана.')}};reader.readAsText(f);t.value='';
+   const reader=new FileReader();reader.onload=async()=>{
+    try{
+     const val=JSON.parse(reader.result);let obj;
+     if(val?.format===FORMAT){
+      const pw=prompt('Введи пароль от резервной копии');if(pw===null)return;
+      const bk=await passwordKey(pw,from64(val.salt),val.iterations);
+      obj=JSON.parse(await decryptPayload(val,bk));
+     }else{
+      if(!confirm('Это НЕЗАШИФРОВАННАЯ резервная копия. Импортировать и сохранить её в зашифрованном хранилище?'))return;
+      obj=val.data??val;
+     }
+     if(!obj?.checks||!obj?.logs||!obj?.weights)throw Error('Некорректные данные');
+     if(!confirm('Заменить текущие записи данными из резервной копии?'))return;
+     store=normalizeStore(obj);save();await flushSaved();fullRender();toast('Резервная копия восстановлена');
+    }catch(err){alert('Не удалось открыть копию. Проверь файл и пароль.')}
+   };reader.readAsText(f);t.value='';
  }
 });
 document.addEventListener('input',ev=>{
@@ -275,6 +426,6 @@ document.addEventListener('input',ev=>{
  if(t.matches('[data-pain]')){ensureDateMap('logs',date)[t.dataset.pain]=Number(t.value);$('#val-'+t.dataset.pain).textContent=t.value+'/10';save()}
  if(t.id==='notes'){ensureDateMap('logs',date).note=t.value;save()}
 });
-fullRender();
+initAuth();
 </script>
 </body></html>
