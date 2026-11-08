@@ -1,7 +1,7 @@
 import asyncio,re
 from pathlib import Path
 from playwright.async_api import async_playwright
-root=Path('/mnt/data/trenirovki_v2_dev')
+root=Path(__file__).resolve().parent.parent
 
 async def main():
  html=(root/'index.html').read_text()
@@ -77,6 +77,37 @@ async def main():
   await page.locator('#modal-form [type="submit"]').click()
   await page.get_by_text('Запястье тест').wait_for()
   await page.screenshot(path=str(root/'tests/profile.png'),full_page=True)
+  # Extended UI coverage for comparison, goal history and reports.
+  await page.locator('#tabs [data-tab="progress"]').click()
+  await page.locator('[data-action="add-weight"]').first.click()
+  await page.locator('#modal-form [name="at"]').fill('2026-11-07T09:00')
+  await page.locator('#modal-form [name="weight"]').fill('91.5')
+  await page.locator('#modal-form [type="submit"]').click()
+  await page.locator('[data-action="progress-mode"][data-value="body"]').click()
+  await page.locator('[data-action="compare-body"]').click()
+  assert await page.locator('#dialog .comparison').count()==1,errors
+  assert await page.locator('#dialog .comparison tbody tr').count()>0,errors
+  await page.locator('#compare-a').select_option('2026-11-07')
+  await page.locator('#dialog-close').click()
+  await page.locator('[data-action="progress-mode"][data-value="wellness"]').click()
+  assert await page.locator('#wellness-zone').count()==1,errors
+  await page.locator('#wellness-period').select_option('90')
+  await page.locator('[data-action="progress-mode"][data-value="reports"]').click()
+  await page.locator('#report-type').select_option('tennis')
+  await page.locator('#tabs [data-tab="profile"]').click()
+  await page.locator('[data-action="new-goal"]').click()
+  assert await page.locator('#modal-form [name="baseline"]').input_value()=='100'
+  await page.locator('#modal-form [name="target"]').fill('90')
+  await page.locator('#modal-form [type="submit"]').click()
+  await page.locator('[data-action="edit-goal"]').click()
+  await page.locator('#modal-form [name="target"]').fill('85')
+  await page.locator('#modal-form [type="submit"]').click()
+  assert 'Цель 85' in await page.locator('#panel').inner_text(),errors
+  await page.locator('[data-action="archive-goal"]').click()
+  assert await page.locator('[data-action="restore-goal"]').count()==1,errors
+  await page.locator('[data-action="restore-goal"]').click()
+  assert await page.locator('[data-action="edit-goal"]').count()==1,errors
+  assert not errors,errors
   print('BROWSER UI PASS; runtime errors:',errors)
   await browser.close()
 
