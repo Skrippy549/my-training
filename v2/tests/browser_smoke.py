@@ -43,6 +43,27 @@ async def main():
   await page.locator('#modal-form [name="name"]').fill('Силовая тест')
   await page.locator('#modal-form [type="submit"]').click()
   await page.get_by_text('Силовая тест').first.wait_for()
+  # New live workout scheduled for the current weekday (Sunday, 8 Nov 2026).
+  await page.locator('[data-action="choose-weekday"][data-value="6"]').click()
+  await page.locator('[data-action="add-template"]').click()
+  await page.locator('#modal-form [name="name"]').fill('Теннис UI')
+  await page.locator('#modal-form [name="type"]').select_option('tennis')
+  await page.locator('#modal-form [type="submit"]').click()
+  await page.locator('#tabs [data-tab="today"]').click()
+  await page.locator('[data-action="open-workout"]').first.click()
+  await page.locator('[data-action="start-workout"]').click()
+  await page.locator('#dialog').wait_for(state='visible')
+  assert await page.locator('#dialog-title').inner_text()=='Самочувствие до тренировки'
+  for slider in await page.locator('#dialog input[data-rating]').all():
+   await slider.evaluate("el=>{el.value='0';el.dispatchEvent(new Event('input',{bubbles:true}))}")
+  await page.locator('#modal-form [type="submit"]').click()
+  await page.locator('[data-action="finish-workout"]').wait_for()
+  await page.screenshot(path=str(root/'tests/session.png'),full_page=True)
+  await page.locator('[data-action="finish-workout"]').click()
+  for slider in await page.locator('#dialog input[data-rating]').all():
+   await slider.evaluate("el=>{el.value='0';el.dispatchEvent(new Event('input',{bubbles:true}))}")
+  await page.locator('#modal-form [type="submit"]').click()
+  await page.locator('#tabs [data-tab="today"]').wait_for()
   await page.locator('#tabs [data-tab="progress"]').click()
   await page.get_by_role('heading',name='Прогресс').wait_for()
   await page.locator('[data-action="add-weight"]').first.click()
