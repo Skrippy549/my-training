@@ -39,9 +39,10 @@ export function workoutsForDate(db,date){const found=[];
  return found.sort((a,b)=>String(a.name).localeCompare(String(b.name),'ru'));
 }
 export function statusFor(db,w,date=dateISO()){const s=db.sessions[w.id];return s?.status||((w.date||date)<date?'missed':'planned');}
-export function countPeriod(db,start,end,today=dateISO(),programId=null){let completed=0,denom=0,partial=0,missed=0,inProgress=0,oneOff=0,allCompleted=0,duration=0;
+export function countPeriod(db,start,end,today=dateISO(),programId=null,type=null){let completed=0,denom=0,partial=0,missed=0,inProgress=0,oneOff=0,allCompleted=0,duration=0;
  for(let d=start;d<=end;d=addDays(d,1)){for(const w of workoutsForDate(db,d)){
    if(programId&&w.programId!==programId)continue;
+   if(type&&w.type!==type)continue;
    const status=statusFor(db,w,today),ses=db.sessions[w.id];
    if(status==='completed'){allCompleted++;duration+=Number(ses?.duration||0);}
    if(w.source==='oneoff'){if(status==='completed')oneOff++;continue;}if(w.source==='legacy')continue;
@@ -114,4 +115,45 @@ export function migrateV1(old,templates){if(!old||typeof old!=='object'||!old.ch
  db.programs.push(current);
  db.legacy={importedAt:new Date().toISOString(),source:'training-week-encrypted-v1',startDate:old.startDate,counts:{dates:dateKeys.length,marks,weights,notes,ratings,unmatched},originalStructure:structuredClone(old)};
  return db;
+}
+
+/** Time-series only use completed set flags; an unknown weight/repetition is never interpreted as zero. */
+export function exerciseProgressSeries(db,exerciseId,metric='weight'){
+ if(!['weight','volume','reps'].includes(metric))throw Error('Неизвестный показатель');
+ const rows=[];
+ for(const session of Object.values(db.sessions||{})){
+  for(const exercise of session.exercisePlans||[]){
+   if((exercise.exerciseId||exercise.id)!==exerciseId)continue;
+   const done=(session.sets?.[exercise.id]||[]).filter(row=>row.done);
+   const validWeight=done.map(row=>Number(row.weight)).filter((n,i)=>done[i].weight!==null&&done[i].weight!==undefined&&done[i].weight!==''&&Number.isFinite(n)&&n>=0);
+   const validReps=done.map(row=>Number(row.reps)).filter((n,i)=>done[i].reps!==null&&done[i].reps!==undefined&&done[i].reps!==''&&Number.isInteger(n)&&n>=0);
+   const pairs=done.filter(row=>row.weight!==null&&row.weight!==undefined&&row.weight!==''&&row.reps!==null&&row.reps!==undefined&&row.reps!==''&&Number.isFinite(Number(row.weight))&&Number(row.weight)>=0&&Number.isInteger(Number(row.reps))&&Number(row.reps)>=0);
+   const value=metric==='weight'?(validWeight.length?Math.max(...validWeight):null):metric==='reps'?(validReps.length?Math.max(...validReps):null):(pairs.length?pairs.reduce((sum,x)=>sum+Number(x.weight)*Number(x.reps),0):null);
+   if(value!==null)rows.push({date:session.date,sessionId:session.id,program:session.programName||'Разовая тренировка',value});
+  }
+ }
+ return rows.sort((a,b)=>a.date.localeCompare(b.date)||a.sessionId.localeCompare(b.sessionId));
+}
+/** Original dates remain visible even if a zone is archived or renamed. */
+export function wellnessSeries(db,zoneId){
+ return Object.values(db.sessions||{}).map(s=>({date:s.date,sessionId:s.id,name:s.name,
+  before:Number.isInteger(s.wellness?.before?.pain?.[zoneId])?s.wellness.before.pain[zoneId]:null,
+  after:Number.isInteger(s.wellness?.after?.pain?.[zoneId])?s.wellness.after.pain[zoneId]:null
+ })).filter(x=>x.before!==null||x.after!==null).sort((a,b)=>a.date.localeCompare(b.date)||a.sessionId.localeCompare(b.sessionId));
+}
+export function measurementsOnDate(db,date){
+ const result={};
+ for(const row of (db.measurements||[]).filter(x=>x.measuredAt?.slice(0,10)===date).sort((a,b)=>a.measuredAt.localeCompare(b.measuredAt)||String(a.createdAt||'').localeCompare(String(b.createdAt||''))))result[row.metric]=row;
+ return result;
+}
+/** For unfinished current weeks/months compare only matching elapsed day counts. */
+export function comparablePeriods(date,mode,today=dateISO()){
+ const start=mode==='week'?weekStart(date):date.slice(0,7)+'-01';
+ const end=mode==='week'?addDays(start,6):dateISO(new Date(Number(date.slice(0,4)),Number(date.slice(5,7)),0,12));
+ const prevStart=mode==='week'?addDays(start,-7):dateISO(new Date(Number(start.slice(0,4)),Number(start.slice(5,7))-2,1,12));
+ const prevEnd=mode==='week'?addDays(prevStart,6):addDays(start,-1);
+ const selectedEnd=end>=today?today:end;
+ if(selectedEnd<start)return {start,end,selectedEnd:null,prevStart,prevEnd,selectedPrevEnd:null};
+ const lastComparable=addDays(prevStart,daysApart(start,selectedEnd));
+ return{start,end,selectedEnd,prevStart,prevEnd,selectedPrevEnd:lastComparable<prevEnd?lastComparable:prevEnd};
 }
