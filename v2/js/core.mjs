@@ -28,7 +28,7 @@ export function workoutsForDate(db,date){const found=[];
    const w=seg.weekIndex+Math.floor(daysApart(weekStart(seg.startDate),weekStart(date))/7);
    if(p.mode==='finite'&&w>=p.weeks.length)continue;
    if(p.mode==='finite'&&w<0)continue;
-   const row=p.weeks[p.mode==='repeat'?w%p.weeks.length:w]?.[dayOfWeek(date)]||[];
+   const row=p.weeks[p.mode==='repeat'?w%p.weeks.length:p.mode==='progressive'?Math.min(w,p.weeks.length-1):w]?.[dayOfWeek(date)]||[];
    for(const t of row){if(weekStart(date)===weekStart(seg.startDate)&&dayOfWeek(date)<=(seg.skipThroughDay??-1))continue;
      const id=`p:${p.id}:${date}:${t.id}`,over=db.overrides[id];if(over===null)continue;
      const snapshot=over||t;found.push({id,date,programId:p.id,programName:p.name,source:'program',...structuredClone(snapshot)});
@@ -55,7 +55,7 @@ export function createSetResults(plan){const out={};for(const ex of plan){const 
 export function markStarted(db,w,before,retrospective=false){const s=sessionFor(db,w);if(!retrospective&&!validAssessment(before,s.painZoneSnapshot,'before'))throw Error('Заполни все значения самочувствия до тренировки');if(!s.startedAt)s.startedAt=new Date().toISOString();s.status='in_progress';s.wellness.before=before??null;if(!Object.keys(s.sets).length)s.sets=createSetResults(s.exercisePlans);s.updatedAt=new Date().toISOString();db.sessions[w.id]=s;return s;}
 export function validAssessment(a,zones,phase){if(!a)return false;const keys=phase==='before'?['energy']:['fatigue','exertion'];return keys.every(k=>Number.isInteger(a[k])&&a[k]>=0&&a[k]<=10)&&zones.every(z=>Number.isInteger(a.pain?.[z.id])&&a.pain[z.id]>=0&&a.pain[z.id]<=10);}
 export function finishSession(db,w,status,after,retrospective=false){const s=sessionFor(db,w);if(!retrospective&&!validAssessment(after,s.painZoneSnapshot,'after'))throw Error('Заполни все значения самочувствия после тренировки');if(!['completed','partial'].includes(status))throw Error('Недопустимый статус');s.wellness.after=after??null;s.status=status;s.completedAt=new Date().toISOString();s.updatedAt=s.completedAt;db.sessions[w.id]=s;return s;}
-export function archiveProgram(p,date=dateISO()){if(p.status==='archived')return;const seg=p.segments.at(-1);if(seg)seg.until=date;const ix=seg?seg.weekIndex+Math.max(0,Math.floor(daysApart(weekStart(seg.startDate),weekStart(date))/7)):0;p.archiveState={weekIndex:ix,skipThroughDay:dayOfWeek(addDays(date,-1))};p.status='archived';}
+export function archiveProgram(p,date=dateISO()){if(p.status==='archived')return;const seg=p.segments.at(-1);if(seg)seg.until=date;const ix=seg?seg.weekIndex+Math.max(0,Math.floor(daysApart(weekStart(seg.startDate),weekStart(date))/7)):0;p.archiveState={weekIndex:ix,skipThroughDay:dayOfWeek(date)-1};p.status='archived';}
 export function restoreProgram(p,date=dateISO()){if(p.status!=='archived')return;p.status='active';p.segments.push({startDate:date,weekIndex:p.archiveState?.weekIndex||0,until:null,skipThroughDay:p.archiveState?.skipThroughDay??-1});p.archiveState=null;}
 export function lastMeasurement(db,metric='weight',onOrBefore=null){return db.measurements.filter(x=>x.metric===metric&&(!onOrBefore||x.measuredAt.slice(0,10)<=onOrBefore)).sort((a,b)=>b.measuredAt.localeCompare(a.measuredAt))[0]||null;}
 export function goalProgress(baseline,target,current){if([baseline,target,current].some(x=>!Number.isFinite(Number(x)))||baseline===target)return null;return Math.min(100,Math.max(0,Math.round((baseline-current)/(baseline-target)*100)));}
@@ -91,6 +91,27 @@ export function migrateV1(old,templates){if(!old||typeof old!=='object'||!old.ch
   if(checkedCount)s.status=checkedCount===expectedCount?'completed':'partial';else s.status='legacy';
   db.sessions[id]=s;
  }
+ // Restore the current v1 plan as an editable progressive program starting next Monday.
+ // Older dates remain ONLY in the imported immutable history; no invented missed workouts.
+ const today=dateISO(),nextMon=addDays(weekStart(today),7);
+ const validOriginalStart=validDate(old.startDate)?old.startDate:nextMon;
+ const activeStart=validOriginalStart>nextMon?validOriginalStart:nextMon;
+ const initialPhase=Math.min(3,Math.max(0,Math.floor(daysApart(weekStart(validOriginalStart),weekStart(activeStart))/7)));
+ const current=makeProgram('План из версии 1.0','repeat',1,activeStart);
+ current.mode='progressive';
+ current.segments[0].weekIndex=initialPhase;
+ const weekdays=['Восстановительная йога','Силовая А','Теннис','Силовая Б','Кардио и мобильность','Силовая В / мобильность','Теннис'];
+ const kinds=['yoga','strength','tennis','strength','cardio','strength','tennis'];
+ const indexByName=new Map();
+ current.weeks=templates.phases.map(days=>days.map((parts,di)=>{
+   const exercisePlans=parts.flatMap(part=>part.items.map(ex=>{
+     const key=ex.name.toLocaleLowerCase('ru-RU');
+     if(!indexByName.has(key)){const id=uid();indexByName.set(key,id);db.exercises.push({id,name:ex.name,category:part.kind==='strength'?'Силовая':part.kind==='daily'?'Разминка':'Мобильность',how:ex.how||'',active:true,muscles:[],equipment:'',location:''});}
+     return{id:uid(),exerciseId:indexByName.get(key),name:ex.name,sets:ex.sets||1,reps:ex.unit||ex.reps,weight:null,how:ex.how||''};
+   }));
+   return[template(weekdays[di],kinds[di],exercisePlans)];
+ }));
+ db.programs.push(current);
  db.legacy={importedAt:new Date().toISOString(),source:'training-week-encrypted-v1',startDate:old.startDate,counts:{dates:dateKeys.length,marks,weights,notes,ratings,unmatched},originalStructure:structuredClone(old)};
  return db;
 }
