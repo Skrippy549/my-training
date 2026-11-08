@@ -1,0 +1,1 @@
+{"name":"Тренировки 2.0","short_name":"Тренировки","lang":"ru","description":"Локальный зашифрованный дневник тренировок","start_url":"./","scope":"./","display":"standalone","background_color":"#090a0c","theme_color":"#090a0c","icons":[{"src":"./assets/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}
