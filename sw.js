@@ -1,5 +1,5 @@
 /* Offline application shell. Never cache personal API responses or user data. */
-const CACHE='trenirovki-v2-shell-2026-11-09-main';
+const CACHE='trenirovki-v2-shell-2026-11-09-fixes1';
 const FILES=['./','./index.html','./style.css','./js/core.mjs','./js/app.mjs','./legacy-plan.json','./manifest.webmanifest','./assets/icon.svg','./assets/icon-180.png','./assets/icon-192.png','./assets/icon-512.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)))});
 self.addEventListener('activate',e=>{e.waitUntil((async()=>{for(const k of await caches.keys())if(k!==CACHE&&k.startsWith('trenirovki-v2-'))await caches.delete(k);await self.clients.claim()})())});
