@@ -18,3 +18,5 @@ table.comparison{border-collapse:collapse;min-width:450px;width:100%;font-size:1
 .chart circle.before-line{fill:#fc5e60}
 .chart circle.after-line{fill:#efbc5c}
 .pain-chart{height:150px}
+
+.setrow.simple{grid-template-columns:28px 1fr}.setrow.simple span{padding:6px 2px}.week-picks{border:1px solid var(--border);border-radius:12px;max-height:240px;overflow-y:auto;margin:12px 0;padding:8px}.week-picks legend{padding:0 6px;color:var(--muted);font-size:12px}.week-picks input{accent-color:var(--red)}
