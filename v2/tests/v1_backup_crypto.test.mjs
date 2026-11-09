@@ -1,0 +1,31 @@
+/** Real WebCrypto regression: externally exported V1 envelope migrates to a new V2 key. */
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {webcrypto} from 'node:crypto';
+import {EncryptedStore,migrateV1,unlockEnvelope,V1_FORMAT,V1_KEY,V2_KEY} from '../js/core.mjs';
+if(!globalThis.crypto)globalThis.crypto=webcrypto;
+const password='old-v1-passphrase-with-12-chars';
+const source={startDate:'2026-11-02',checks:{'2026-11-03':{'morning/march':true}},logs:{'2026-11-03':{knee:3,note:'Old note'}},weights:{'2026-11-03':{'strengthA/legpress':'60'}}};
+const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12));
+const rawKey=await crypto.subtle.importKey('raw',new TextEncoder().encode(password),'PBKDF2',false,['deriveKey']);
+const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:310000,hash:'SHA-256'},rawKey,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+const encrypted=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,new TextEncoder().encode(JSON.stringify(source)));
+const env={format:V1_FORMAT,version:1,iterations:310000,salt:Buffer.from(salt).toString('base64'),iv:Buffer.from(iv).toString('base64'),ciphertext:Buffer.from(encrypted).toString('base64')};
+const {data}=await unlockEnvelope(env,password,V1_FORMAT);
+assert.deepEqual(data,source);
+await assert.rejects(unlockEnvelope(env,'wrong-password-with-12-characters',V1_FORMAT),/Неверный пароль/);
+const templates=JSON.parse(readFileSync(new URL('../legacy-plan.json',import.meta.url),'utf8'));
+const converted=migrateV1(data,templates);
+assert.equal(converted.legacy.counts.marks,1);
+assert.equal(converted.legacy.counts.weights,1);
+assert.equal(converted.sessions['legacy:2026-11-03'].wellness.before,null);
+class MemoryStorage{store=new Map();getItem(k){return this.store.get(k)??null;}setItem(k,v){this.store.set(k,v);}removeItem(k){this.store.delete(k);}}
+const storage=new MemoryStorage();
+const storedV1=JSON.stringify(env);storage.setItem(V1_KEY,storedV1);
+const v2=new EncryptedStore(storage);
+await v2.create(password,converted);await v2.lock();await v2.open(password);
+assert.equal(storage.getItem(V1_KEY),storedV1,'v1 must be byte-for-byte intact');
+assert.ok(storage.getItem(V2_KEY)?.includes('training-v2-encrypted-v1'));
+assert.equal(v2.data.sessions['legacy:2026-11-03'].legacyMeta.weights['strengthA/legpress'],'60');
+assert.equal(v2.data.sessions['legacy:2026-11-03'].wellness.after,null);
+console.log('PASS: real AES-GCM v1 file to isolated encrypted v2, historical records preserved, source bytes unchanged');
