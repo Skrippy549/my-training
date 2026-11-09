@@ -392,7 +392,7 @@ document.addEventListener('change',async e=>{const t=e.target;try{
  if(t.dataset.sessionField){const id=s.sessionId,key=t.dataset.sessionField;await persist(d=>{if(d.sessions[id]?.status!=='in_progress')throw Error('Сначала открой исправление');d.sessions[id][key]=t.value===''?null:Number(t.value);d.sessions[id].updatedAt=new Date().toISOString()});return;}
  if(t.id==='session-notes'){await persist(d=>{if(d.sessions[s.sessionId]?.status!=='in_progress')throw Error('Сначала открой исправление');d.sessions[s.sessionId].notes=t.value});return;}
  }catch(ex){err(ex)}});
-function showAuth(){s.sessionId=null;$('#app').hidden=true;$('#auth').hidden=false;$('#auth-error').textContent='';const hasV2=dbStore.hasV2(),hasV1=dbStore.hasV1();$('#auth-title').textContent=hasV2?'Введи пароль':hasV1?'Перенос дневника 1.0':'Создать защищённое хранилище';$('#auth-desc').textContent=hasV2?'Открой зашифрованный дневник.':hasV1?'Используем пароль от 1.0 и перенесём записи в отдельную базу 2.0, не удаляя оригинал.':'Личные данные хранятся только на этом устройстве.';$('#auth-confirm-wrap').hidden=hasV2||hasV1;$('#auth-submit').textContent=hasV2?'Открыть':hasV1?'Перенести данные':'Создать хранилище';$('#auth-pass').value='';$('#auth-confirm').value='';}
+function showAuth(){s.sessionId=null;$('#app').hidden=true;$('#auth').hidden=false;$('#auth-error').textContent='';const hasV2=dbStore.hasV2(),hasV1=dbStore.hasV1();$('#auth-title').textContent=hasV2?'Введи пароль':hasV1?'Перенос дневника 1.0':'Создать защищённое хранилище';$('#auth-desc').textContent=hasV2?'Открой зашифрованный дневник.':hasV1?'Используем пароль от 1.0 и перенесём записи в отдельную базу 2.0, не удаляя оригинал.':'Личные данные хранятся только на этом устройстве.';$('#auth-confirm-wrap').hidden=hasV2||hasV1;$('#auth-import-v1').hidden=hasV2;$('#auth-submit').textContent=hasV2?'Открыть':hasV1?'Перенести данные':'Создать хранилище';$('#auth-pass').value='';$('#auth-confirm').value='';}
 $('#auth-form').addEventListener('submit',async e=>{e.preventDefault();const password=$('#auth-pass').value,btn=$('#auth-submit');btn.disabled=true;$('#auth-error').textContent='';try{
  if(password.length<12)throw Error('Пароль должен содержать не менее 12 символов');
  if(dbStore.hasV2())await dbStore.open(password);
@@ -406,6 +406,33 @@ $('#auth-form').addEventListener('submit',async e=>{e.preventDefault();const pas
  }
  $('#auth-pass').value='';$('#auth-confirm').value='';render();backupReminder();
  }catch(ex){$('#auth-error').textContent=ex?.message||'Не удалось открыть базу';}finally{btn.disabled=false}});
+// Separate HTTPS preview origins cannot read Safari/PWA localStorage from 1.0.
+// This local-file migration creates a new encrypted 2.0 database without changing
+// the imported file or the encrypted records in the existing 1.0 installation.
+$('#auth-import-v1').addEventListener('click',()=>{
+ if(dbStore.hasV2()){showAuth();return;}
+ $('#auth-error').textContent='';$('#auth-import-file').value='';$('#auth-import-file').click();
+});
+$('#auth-import-file').addEventListener('change',async e=>{
+ const file=e.target.files?.[0];if(!file)return;
+ const button=$('#auth-import-v1'),submit=$('#auth-submit');button.disabled=true;submit.disabled=true;
+ $('#auth-error').textContent='';
+ try{
+  if(dbStore.hasV2())throw Error('Хранилище 2.0 уже существует. Импорт в существующую базу запрещён.');
+  const password=$('#auth-pass').value;
+  if(password.length<12)throw Error('Сначала введи пароль от копии 1.0 (не менее 12 символов)');
+  if(file.size>20*1024*1024)throw Error('Файл резервной копии слишком большой');
+  const env=JSON.parse(await file.text());
+  const {data}=await unlockEnvelope(env,password,V1_FORMAT);
+  const response=await fetch('./legacy-plan.json');if(!response.ok)throw Error('Не удалось загрузить структуру программы 1.0');
+  const converted=migrateV1(data,await response.json());
+  // Confirm the import results before committing a new encrypted storage key.
+  if(!confirm(`Перенести ${converted.legacy?.counts?.dates??0} дат из резервной копии 1.0 в новое защищённое хранилище 2.0? Исходная копия не изменится.`))return;
+  await dbStore.create(password,converted);
+  $('#auth-pass').value='';render();backupReminder();
+ }catch(ex){$('#auth-error').textContent=ex?.message||'Не удалось перенести файл 1.0';}
+ finally{button.disabled=false;submit.disabled=false;e.target.value='';}
+});
 if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1'))navigator.serviceWorker.register('./sw.js').catch(ex=>console.warn('PWA registration unavailable',ex));
 showAuth();
 
