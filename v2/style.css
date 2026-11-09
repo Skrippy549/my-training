@@ -20,3 +20,29 @@ table.comparison{border-collapse:collapse;min-width:450px;width:100%;font-size:1
 .pain-chart{height:150px}
 
 .setrow.simple{grid-template-columns:28px 1fr}.setrow.simple span{padding:6px 2px}.week-picks{border:1px solid var(--border);border-radius:12px;max-height:240px;overflow-y:auto;margin:12px 0;padding:8px}.week-picks legend{padding:0 6px;color:var(--muted);font-size:12px}.week-picks input{accent-color:var(--red)}
+
+/* v2.0.1 — narrow iPhone layouts and consistent action spacing */
+html, body { max-width:100%; }
+body { overflow-x:clip; }
+main, #panel, .card, .dialog-body, #modal-form, .field, .formgrid, .formgrid>*, .buttons, .buttons>* { min-width:0; max-width:100%; }
+.field { width:100%; }
+.field input, .field select, .field textarea, .auth-card input,
+input[type="date"], input[type="datetime-local"] { box-sizing:border-box; min-width:0; max-width:100%; width:100%; }
+/* Safari assigns date inputs a large intrinsic width unless min-width is cleared on all parents. */
+input[type="date"], input[type="datetime-local"] { -webkit-min-logical-width:0; }
+#dialog { box-sizing:border-box; max-width:calc(100vw - 24px); }
+#modal-form { overflow-wrap:anywhere; }
+.today-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; align-items:stretch; margin-top:16px; }
+.today-actions>button { width:100%; min-width:0; min-height:48px; white-space:normal; overflow-wrap:normal; }
+.progress-actions { margin:8px 0 18px; }
+.progress-actions+ .card, .progress-actions+ section.card { margin-top:5px; }
+.oneoff-row { margin:10px 0; }
+.oneoff-row .between { margin-bottom:10px; }
+.oneoff-add { margin:8px 0 14px; }
+.add-session-exercise { margin:12px 0 16px; }
+@media (max-width:370px){
+ .today-actions { gap:8px; }
+ .today-actions>button { padding:10px 8px; font-size:13px; }
+ .formgrid { gap:8px; }
+ .dialog-body { padding:18px 12px; }
+}

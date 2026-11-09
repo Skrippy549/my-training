@@ -39,10 +39,14 @@ async def test():
   assert names==['Сила А','Сила Б','Сила А'],names
   # One-off with bank exercise and single-day override.
   await page.locator('[data-action="back-programs"]').click();await page.locator('[data-tab="calendar"]').click()
-  await page.locator('[data-action="add-oneoff"]').click();await page.locator('#modal-form [name="name"]').fill('Разовая силовая');await page.locator('#modal-form [name="type"]').select_option('strength');await page.locator('#modal-form [type="submit"]').click()
+  await page.locator('[data-action="add-oneoff"]').click();await page.locator('#modal-form [name="name"]').fill('Разовая силовая');await page.locator('#modal-form [name="type"]').select_option('strength')
+  await page.locator('[data-action="add-oneoff-row"]').click()
+  await page.locator('#modal-form .oneoff-row [name="exercise"]').select_option(index=1)
+  await page.locator('#modal-form [type="submit"]').click()
   await page.get_by_text('Разовая силовая').first.wait_for();id=await page.evaluate('() => Object.keys(dbStore.data.overrides).find(k=>k.startsWith("one:"))')
-  await page.locator(f'[data-action="edit-day"][data-id="{id}"]').click();await page.locator('#modal-form [name="newEx"]').select_option(index=1);await page.locator('#modal-form [type="submit"]').click()
-  count=await page.evaluate('''id=>dbStore.data.overrides[id].exercises.length''',id);assert count==1,count
+  count=await page.evaluate('id=>dbStore.data.overrides[id].exercises.length',id);assert count==1,count
+  assert await page.locator('[data-action="start-workout"]').count()==1
+  await page.locator('[data-action="session-exit"]').click()
   # Multiple measurements and custom metrics.
   await page.locator('[data-tab="progress"]').click();await page.locator('[data-action="progress-mode"][data-value="body"]').click()
   await page.locator('[data-action="add-custom-metric"]').click();await page.locator('#modal-form [name="name"]').fill('Гибкость');await page.locator('#modal-form [name="unit"]').fill('см');await page.locator('#modal-form [type="submit"]').click()

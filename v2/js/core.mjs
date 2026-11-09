@@ -17,7 +17,55 @@ export const prettyDate=(d,opts={day:'numeric',month:'long'})=>parseDate(d).toLo
 const validDate=s=>typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s)&&dateISO(parseDate(s))===s;
 const b64=x=>{let s='';for(let i=0;i<x.length;i+=8192)s+=String.fromCharCode(...x.slice(i,i+8192));return btoa(s)};
 const deb64=x=>Uint8Array.from(atob(x),c=>c.charCodeAt(0));
-export function blankDB(){return {schema:2,createdAt:new Date().toISOString(),programs:[],exercises:[],categories:[...CATEGORIES],muscles:['Грудь','Спина','Ноги','Плечи','Руки','Кор'],equipment:['Без оборудования','Тренажёр','Гантели','Штанга','Резинки'],locations:['Зал','Дома','Улица','Корт'],customMetrics:[],painZones:[{id:'knee_l',name:'Левое колено',body:'Колено',side:'Левая',active:true},{id:'feet',name:'Стопы',body:'Стопа',side:'Обе',active:true},{id:'back',name:'Спина',body:'Спина',side:'Без стороны',active:true}],overrides:{},dayPlans:{},sessions:{},measurements:[],goals:[],settings:{backupReminder:true,lastExportAt:null,profile:{}},legacy:null};}
+/** Starter exercise library. Stable identifiers prevent duplicates and allow safe edits/hiding. */
+const STARTER_EXERCISES = [
+ // Strength training
+ ['leg-press','Жим ногами','Силовая','Ноги','Тренажёр','Зал','Следи за контролируемой амплитудой, не отрывай таз от сиденья.'],
+ ['chest-press','Жим от груди в тренажёре','Силовая','Грудь','Тренажёр','Зал','Двигайся плавно, держи лопатки устойчиво.'],
+ ['lat-pulldown','Тяга верхнего блока','Силовая','Спина','Тренажёр','Зал','Опускай рукоять к верхней части груди, без рывков.'],
+ ['seated-row','Тяга горизонтального блока','Силовая','Спина','Тренажёр','Зал','Сохраняй ровную спину и контролируй возвращение рукояти.'],
+ ['leg-curl','Сгибание ног в тренажёре','Силовая','Ноги','Тренажёр','Зал','Используй комфортную амплитуду, избегай резких движений.'],
+ ['glute-bridge','Ягодичный мост','Силовая','Ноги','Без оборудования','Дома','Поднимай таз контролируемо, без чрезмерного прогиба в пояснице.'],
+ ['goblet-squat','Приседание с гантелью','Силовая','Ноги','Гантели','Зал','Выбирай глубину и вес по своей подготовке.'],
+ ['dumbbell-row','Тяга гантели одной рукой','Силовая','Спина','Гантели','Зал','Держи корпус стабильным, не вращай плечи.'],
+ ['dumbbell-press','Жим гантелей сидя','Силовая','Плечи','Гантели','Зал','Выжимай вверх плавно, не переразгибай поясницу.'],
+ ['plank','Планка','Силовая','Кор','Без оборудования','Дома','Держи корпус прямым, дыши свободно.'],
+ // Warm-up
+ ['marching','Ходьба на месте','Разминка','Ноги','Без оборудования','Дома','Начни в спокойном темпе и постепенно ускоряй шаги.'],
+ ['shoulder-circles','Круговые движения плечами','Разминка','Плечи','Без оборудования','Дома','Выполняй небольшие плавные круги.'],
+ ['arm-swing','Махи руками','Разминка','Плечи','Без оборудования','Дома','Двигай руками мягко, без рывков.'],
+ ['side-steps','Шаги в стороны','Разминка','Ноги','Без оборудования','Дома','Переноси вес с ноги на ногу плавно.'],
+ // Mobility
+ ['ankle-mobility','Мобилизация голеностопа','Мобильность','Ноги','Без оборудования','Дома','Плавно двигай колено над стопой в комфортном диапазоне.'],
+ ['thoracic-rotation','Повороты грудного отдела','Мобильность','Спина','Без оборудования','Дома','Выполняй повороты с устойчивым положением таза.'],
+ ['hip-circles','Круги тазом','Мобильность','Кор','Без оборудования','Дома','Контролируй амплитуду, без резких движений.'],
+ ['cat-cow-mobility','Кошка — корова (мобильность)','Мобильность','Спина','Без оборудования','Дома','Плавно чередуй сгибание и разгибание спины.'],
+ // Yoga
+ ['child-pose','Поза ребёнка','Йога','Спина','Без оборудования','Дома','Дыши свободно, удерживай комфортное положение.'],
+ ['cat-cow-yoga','Кошка — корова','Йога','Спина','Без оборудования','Дома','Согласовывай движение спины с дыханием.'],
+ ['downward-dog','Собака мордой вниз','Йога','Ноги','Без оборудования','Дома','Распредели нагрузку между руками и ногами; согни колени при необходимости.'],
+ ['seated-twist','Скручивание сидя','Йога','Спина','Без оборудования','Дома','Мягко поворачивай корпус без усилия через боль.'],
+ // Stretch
+ ['calf-stretch','Растяжка икроножных мышц','Растяжка','Ноги','Без оборудования','Дома','Удерживай комфортное натяжение, не пружинь.'],
+ ['chest-stretch','Растяжка грудных мышц','Растяжка','Грудь','Без оборудования','Дома','Раскрывай грудную клетку плавно, без боли.'],
+ ['hamstring-stretch','Растяжка задней поверхности бедра','Растяжка','Ноги','Без оборудования','Дома','Держи спину в комфортном положении.'],
+ ['shoulder-stretch','Растяжка плеч','Растяжка','Плечи','Без оборудования','Дома','Мягко вытягивай руку поперёк груди.'],
+ // Cardio
+ ['walk-treadmill','Ходьба на дорожке','Кардио','Ноги','Тренажёр','Зал','Начни с комфортной скорости.'],
+ ['bike-stationary','Велотренажёр','Кардио','Ноги','Тренажёр','Зал','Выбери комфортное сопротивление и ровный темп.'],
+ ['elliptical','Эллиптический тренажёр','Кардио','Ноги','Тренажёр','Зал','Двигайся плавно, без резких ускорений.'],
+ ['walk-outdoors','Ходьба на улице','Кардио','Ноги','Без оборудования','Улица','Поддерживай комфортный темп.'],
+ // Tennis
+ ['tennis-forehand','Форхенд: удары справа','Теннис','Руки','Ракетка и мяч','Корт','Тренируй контроль направления и точку контакта с мячом.'],
+ ['tennis-backhand','Бэкхенд: удары слева','Теннис','Руки','Ракетка и мяч','Корт','Следи за устойчивым положением корпуса.'],
+ ['tennis-serve','Подача','Теннис','Плечи','Ракетка и мяч','Корт','Отрабатывай технику подачи в доступном темпе.'],
+ ['tennis-footwork','Перемещения по корту','Теннис','Ноги','Ракетка и мяч','Корт','Начни с коротких контролируемых перемещений.'],
+ ['tennis-rally','Розыгрыш на задней линии','Теннис','Руки','Ракетка и мяч','Корт','Поддерживай розыгрыш и точность ударов.']
+];
+export function starterExerciseLibrary(){return STARTER_EXERCISES.map(([slug,name,category,muscle,equipment,location,how])=>({id:`starter:${slug}`,name,category,muscles:[muscle],equipment,location,how,level:'Начальный',source:'builtin',active:true,favorite:false,alternatives:[]}));}
+/** Run once per existing database; never refill user-hidden or deleted presets on subsequent logins. */
+export function ensureStarterExercises(db){db.settings??={};if(db.settings.starterLibraryVersion>=1)return false;const existing=new Set((db.exercises||[]).map(e=>`${e.category}:${e.name}`.toLowerCase()));for(const e of starterExerciseLibrary()){const key=`${e.category}:${e.name}`.toLowerCase();if(!existing.has(key)){db.exercises.push(e);existing.add(key);}}if(!db.equipment.includes('Ракетка и мяч'))db.equipment.push('Ракетка и мяч');db.settings.starterLibraryVersion=1;return true;}
+export function blankDB(){return {schema:2,createdAt:new Date().toISOString(),programs:[],exercises:starterExerciseLibrary(),categories:[...CATEGORIES],muscles:['Грудь','Спина','Ноги','Плечи','Руки','Кор'],equipment:['Без оборудования','Тренажёр','Гантели','Штанга','Резинки','Ракетка и мяч'],locations:['Зал','Дома','Улица','Корт'],customMetrics:[],painZones:[{id:'knee_l',name:'Левое колено',body:'Колено',side:'Левая',active:true},{id:'feet',name:'Стопы',body:'Стопа',side:'Обе',active:true},{id:'back',name:'Спина',body:'Спина',side:'Без стороны',active:true}],overrides:{},dayPlans:{},sessions:{},measurements:[],goals:[],settings:{backupReminder:true,lastExportAt:null,profile:{},starterLibraryVersion:1},legacy:null};}
 export function validateDB(d){if(!d||d.schema!==2||!Array.isArray(d.programs)||!Array.isArray(d.exercises)||!d.sessions||typeof d.sessions!=='object'||Array.isArray(d.sessions)||!Array.isArray(d.measurements)||!Array.isArray(d.goals)||!Array.isArray(d.painZones)||(d.customMetrics!==undefined&&!Array.isArray(d.customMetrics))||!d.settings||!d.overrides||typeof d.overrides!=='object'||(d.dayPlans!==undefined&&(!d.dayPlans||typeof d.dayPlans!=='object'||Array.isArray(d.dayPlans))))throw Error('Неподдерживаемая или повреждённая база');return d;}
 export function makeProgram(name,mode='repeat',weeks=1,startDate=dateISO()){
  const start=validDate(startDate)?startDate:dateISO();return {id:uid(),name,mode,startDate:start,status:'active',segments:[{startDate:start,weekIndex:0,until:null,skipThroughDay:-1}],weeks:Array.from({length:mode==='finite'?weeks:1},()=>Array.from({length:7},()=>[])),archiveState:null,createdAt:new Date().toISOString()};}
@@ -102,7 +150,7 @@ export function countPeriod(db,start,end,today=dateISO(),programId=null,type=nul
    if(!elapsed)continue;
    denom++;if(status==='completed')completed++;if(status==='partial')partial++;if(status==='missed')missed++;if(status==='in_progress')inProgress++;
  }}return{completed,denom,percent:denom?Math.round(completed/denom*100):null,partial,missed,inProgress,oneOff,oneOffPartial,allCompleted,duration};}
-export function addOneOff(db,date,name,type='strength'){const w={id:`one:${uid()}`,date,name,type,exercises:[],duration:null,notes:''};db.overrides[w.id]=w;return w;}
+export function addOneOff(db,date,name,type='strength',exercises=[]){const w={id:`one:${uid()}`,date,name,type,exercises:structuredClone(exercises),duration:null,notes:''};db.overrides[w.id]=w;return w;}
 export function sessionFor(db,w){let s=db.sessions[w.id];if(s)return s;return {id:w.id,date:w.date,programId:w.programId||null,programName:w.programName||null,source:w.source||'oneoff',name:w.name,type:w.type,exercisePlans:structuredClone(w.exercises||[]),sets:{},wellness:{before:null,after:null,legacy:null},painZoneSnapshot:db.painZones.filter(z=>z.active).map(z=>({id:z.id,name:z.name})),status:'planned',notes:'',duration:null,distance:null,startedAt:null,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()};}
 export function createSetResults(plan){const out={};for(const ex of plan){const count=Number(ex.sets)||1;out[ex.id]=Array.from({length:count},()=>({done:false,weight:ex.weight??null,reps:ex.reps??null}));}return out;}
 export function markStarted(db,w,before,retrospective=false){const s=sessionFor(db,w);if(!retrospective&&!validAssessment(before,s.painZoneSnapshot,'before'))throw Error('Заполни все значения самочувствия до тренировки');if(!s.startedAt)s.startedAt=new Date().toISOString();s.status='in_progress';s.wellness.before=before??null;if(!Object.keys(s.sets).length)s.sets=createSetResults(s.exercisePlans);s.updatedAt=new Date().toISOString();db.sessions[w.id]=s;return s;}
